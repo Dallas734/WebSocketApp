@@ -38,7 +38,6 @@ namespace WebSocketApp.Server
                     var webSocketContext = await context.AcceptWebSocketAsync(null);
                     Console.WriteLine("Новое подключение установлено. Ожидание сообщений...");
 
-                    IMyWebSocketContext myWebSocketContext = new MyWebSocketContext(webSocketContext);
                     await HandleClient(webSocketContext.WebSocket);
                 }
                 else
