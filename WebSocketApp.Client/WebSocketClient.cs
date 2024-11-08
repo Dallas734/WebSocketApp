@@ -37,15 +37,6 @@ namespace WebSocketApp.Client
             Console.WriteLine("Сообщение отправлено: " + message);
         }
 
-        public async Task<string> ReceiveMessageAsync()
-        {
-            var buffer = new byte[1024];
-            var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            var receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            Console.WriteLine("Сообщение получено: " + receivedMessage);
-            return receivedMessage;
-        }
-
         public async Task DisconnectAsync()
         {
             await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие соединения", CancellationToken.None);
