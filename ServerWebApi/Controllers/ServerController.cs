@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ServerWebApi;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -37,7 +38,6 @@ namespace WebSocketApp.Server.Controllers
                 var context = await httpListener.GetContextAsync();
                 if (context.Request.IsWebSocketRequest)
                 {
-                    // Исправление: передаем string.Empty вместо null
                     _webSocket = (await context.AcceptWebSocketAsync(null)).WebSocket;
                     Console.WriteLine("Подключен новый клиент.");
                     await ReceiveMessages(_webSocket);
@@ -76,6 +76,12 @@ namespace WebSocketApp.Server.Controllers
 
             var buffer = Encoding.UTF8.GetBytes(message);
             _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None).Wait();
+            using (ZyfraContext db = new ZyfraContext())
+            {
+                Message msg = new Message() { Message1 = message };
+                db.Messages.Add(msg);
+                db.SaveChanges();
+            }
             return Ok($"Сообщение '{message}' отправлено клиенту.");
         }
 
