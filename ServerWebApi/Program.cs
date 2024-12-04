@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Net.WebSockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting(); // Настройка маршрутов
+var webSocketOptions = new Microsoft.AspNetCore.Builder.WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromMinutes(2), // Интервал проверки соединения
+    ReceiveBufferSize = 1024 * 4 // Размер буфера приема
+};
+app.UseWebSockets(webSocketOptions);
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers(); // Привязка контроллеров
