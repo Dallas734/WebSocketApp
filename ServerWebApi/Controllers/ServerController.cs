@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ServerWebApi;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -13,20 +14,41 @@ namespace WebSocketApp.Server.Controllers
     {
         private static WebSocket _webSocket;
         private static bool _serverStarted = false;
+        private static readonly ConcurrentDictionary<string, WebSocket> Clients = new();
 
-        [HttpPost("start")]
-        public IActionResult StartServer([FromQuery] string serverUrl, [FromQuery] int port)
+        [HttpGet("connect")]
+        public async Task Connect()
         {
-            if (_serverStarted)
-                return BadRequest("Сервер уже запущен.");
+            if (HttpContext.WebSockets.IsWebSocketRequest)
+            {
+                var clientId = Guid.NewGuid().ToString();
+                var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                Clients.TryAdd(clientId, webSocket);
 
-            _serverStarted = true;
+                Console.WriteLine($"Подключен новый клиент: {clientId}");
 
-            Task.Run(() => StartWebSocketServer(serverUrl, port));
-            return Ok($"Сервер запущен на ws://{serverUrl}:{port}");
+                try
+                {
+                    await ReceiveMessages(clientId, webSocket);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка WebSocket (клиент {clientId}): {ex.Message}");
+                }
+                finally
+                {
+                    Clients.TryRemove(clientId, out _);
+                    Console.WriteLine($"Соединение с клиентом {clientId} завершено.");
+                }
+            }
+            else
+            {
+                HttpContext.Response.StatusCode = 400;
+                await HttpContext.Response.WriteAsync("Не является WebSocket-запросом.");
+            }
         }
 
-        private async Task StartWebSocketServer(string serverUrl, int port)
+        /*private async Task StartWebSocketServer(string serverUrl, int port)
         {
             var httpListener = new System.Net.HttpListener();
             httpListener.Prefixes.Add($"http://{serverUrl}:{port}/");
@@ -48,9 +70,9 @@ namespace WebSocketApp.Server.Controllers
                     context.Response.Close();
                 }
             }
-        }
+        }*/
 
-        private async Task ReceiveMessages(WebSocket webSocket)
+        private async Task ReceiveMessages(string clientId, WebSocket webSocket)
         {
             var buffer = new byte[1024];
 
